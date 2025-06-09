@@ -26,8 +26,8 @@ dependencies {
 	runtimeOnly 'com.oracle.database.jdbc:ojdbc11'
 
 	// Lombok
-	compileOnly 'org.projectlombok:lombok:1.18.30'
-	annotationProcessor 'org.projectlombok:lombok:1.18.30'
+	compileOnly 'org.projectlombok:lombok'
+	annotationProcessor 'org.projectlombok:lombok'
 
 	// JJWT
 	implementation 'io.jsonwebtoken:jjwt-api:0.11.5'

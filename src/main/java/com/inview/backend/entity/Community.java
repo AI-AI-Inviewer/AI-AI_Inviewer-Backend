@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.util.Date;
 
@@ -25,10 +27,12 @@ public class Community {
     @Column(name = "COMMUNITY_CONTENT", nullable = false, length = 1000)
     private String communityContent;
 
+    @CreationTimestamp  // 🔥 INSERT 시 자동
     @Temporal(TemporalType.TIMESTAMP)
-    @Column(name = "COMMUNITY_DATE", nullable = false)
+    @Column(name = "COMMUNITY_DATE", nullable = false, updatable = false)
     private Date communityDate;
 
+    @UpdateTimestamp  // 🔥 UPDATE 시 자동
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "COMMUNITY_UPDATE", nullable = false)
     private Date communityUpdate;

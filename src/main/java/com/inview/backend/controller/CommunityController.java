@@ -1,10 +1,14 @@
 package com.inview.backend.controller;
 
+import com.inview.backend.dto.CommunityRequestDto;
 import com.inview.backend.entity.Community;
-import com.inview.backend.service.CommunityService;
-import com.inview.backend.config.JwtTokenProvider;
+import com.inview.backend.entity.User;
+import com.inview.backend.repository.CommunityRepository;
+import com.inview.backend.repository.UserRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -14,51 +18,46 @@ import java.util.List;
 @RequiredArgsConstructor
 public class CommunityController {
 
-    private final CommunityService communityService;
-    private final JwtTokenProvider jwtTokenProvider;
+    private final CommunityRepository communityRepository;
+    private final UserRepository userRepository;
 
-    // 게시글 등록
-    @PostMapping
-    public ResponseEntity<?> createCommunity(@RequestHeader("Authorization") String token,
-                                             @RequestBody Community community) {
-        String userId = extractUserId(token);
-        Community created = communityService.createCommunity(userId, community);
-        return ResponseEntity.ok(created);
-    }
-
-    // 전체 게시글 조회
+    // 🔥 GET: 게시글 목록
     @GetMapping
-    public ResponseEntity<List<Community>> getAllCommunities() {
-        return ResponseEntity.ok(communityService.getAllCommunities());
+    public ResponseEntity<List<Community>> getAllCommunity() {
+        List<Community> list = communityRepository.findAll();
+        return ResponseEntity.ok(list);
     }
 
-    // 특정 게시글 조회
+    // 🔥 POST: 게시글 작성
+    @PostMapping
+    @Transactional
+    public ResponseEntity<Community> createCommunity(
+            @RequestBody CommunityRequestDto dto,
+            Authentication authentication
+    ) {
+        String userId = (String) authentication.getPrincipal();
+        User user = userRepository.findByUserId(userId)
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+
+        Community community = new Community();
+        community.setCommunityTitle(dto.getTitle());
+        community.setCommunityContent(dto.getContent());
+        community.setUser(user);
+
+        Community saved = communityRepository.save(community);
+        return ResponseEntity.ok(saved);
+    }
     @GetMapping("/{id}")
+    @Transactional
     public ResponseEntity<Community> getCommunityById(@PathVariable Long id) {
-        return communityService.getCommunityById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+        Community community = communityRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("게시글을 찾을 수 없습니다."));
+
+        // 조회수 증가
+        community.setCommunityViewCount(community.getCommunityViewCount() + 1);
+        // JPA가 영속 상태라서 트랜잭션 커밋 시 자동 업데이트됨
+
+        return ResponseEntity.ok(community);
     }
 
-    // 게시글 수정
-    @PutMapping("/{id}")
-    public ResponseEntity<?> updateCommunity(@PathVariable Long id, @RequestBody Community community) {
-        Community updated = communityService.updateCommunity(id, community);
-        return ResponseEntity.ok(updated);
-    }
-
-    // 게시글 삭제
-    @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteCommunity(@PathVariable Long id) {
-        communityService.deleteCommunity(id);
-        return ResponseEntity.ok("삭제 완료");
-    }
-
-    // JWT 토큰에서 userId 추출
-    private String extractUserId(String token) {
-        if (token.startsWith("Bearer ")) {
-            token = token.substring(7);
-        }
-        return jwtTokenProvider.getUserId(token);
-    }
 }

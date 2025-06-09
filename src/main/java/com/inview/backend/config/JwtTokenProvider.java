@@ -2,21 +2,28 @@ package com.inview.backend.config;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import jakarta.annotation.PostConstruct;
 import java.security.Key;
 import java.util.Date;
 
 @Component
+@RequiredArgsConstructor
 public class JwtTokenProvider {
 
     private Key key;
+
+    @Value("${jwt.secret}")
+    private String secretKey;
+
     private final long tokenValidityInMilliseconds = 1000 * 60 * 60; // 1 hour
 
     @PostConstruct
     public void init() {
-        this.key = Keys.secretKeyFor(SignatureAlgorithm.HS256);
+        this.key = Keys.hmacShaKeyFor(secretKey.getBytes());
     }
 
     // 토큰 생성
