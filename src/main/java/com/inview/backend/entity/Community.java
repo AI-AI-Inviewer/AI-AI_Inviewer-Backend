@@ -1,11 +1,9 @@
 package com.inview.backend.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
 import java.util.Date;
 
@@ -13,7 +11,6 @@ import java.util.Date;
 @Table(name = "COMMUNITY_TABLE")
 @Getter
 @Setter
-@NoArgsConstructor
 public class Community {
 
     @Id
@@ -24,27 +21,27 @@ public class Community {
     @Column(name = "COMMUNITY_TITLE", nullable = false)
     private String communityTitle;
 
-    @Column(name = "COMMUNITY_CONTENT", nullable = false, length = 1000)
+    @Column(name = "COMMUNITY_CONTENT", nullable = false)
     private String communityContent;
 
-    @CreationTimestamp  // 🔥 INSERT 시 자동
+    @Column(name = "COMMUNITY_DATE", nullable = false)
     @Temporal(TemporalType.TIMESTAMP)
-    @Column(name = "COMMUNITY_DATE", nullable = false, updatable = false)
     private Date communityDate;
 
-    @UpdateTimestamp  // 🔥 UPDATE 시 자동
-    @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "COMMUNITY_UPDATE", nullable = false)
+    @Temporal(TemporalType.TIMESTAMP)
     private Date communityUpdate;
 
-    @Column(name = "COMMUNITY_VIEWCOUNT", nullable = false)
-    private int communityViewCount = 0;
+    @Column(name = "COMMUNITY_VIEWCOUNT")
+    private Long communityViewCount = 0L;
 
     @Lob
     @Column(name = "COMMUNITY_RESUME")
     private String communityResume;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "USER_NUM")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private User user;
+
 }

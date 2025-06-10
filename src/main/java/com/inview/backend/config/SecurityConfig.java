@@ -1,5 +1,6 @@
 package com.inview.backend.config;
 
+import com.inview.backend.config.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -33,14 +34,17 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/user/register", "/api/user/login").permitAll()
+                        .requestMatchers("/api/user/check-id", "/api/user/check-nickname").permitAll()
                         .requestMatchers("/api/user/me").permitAll()
-                        // 🔥 여기에 GET 요청 열어주기
                         .requestMatchers("/api/community/**").permitAll()
-                        .anyRequest().authenticated())
+                        .requestMatchers("/api/comments/**").permitAll() // 🔥 댓글 GET 허용 추가
+                        .anyRequest().authenticated()
+                )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
+
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {

@@ -9,6 +9,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/user")
 @CrossOrigin(origins = "http://localhost:3000")
@@ -85,4 +87,17 @@ public class AuthController {
 
         return ResponseEntity.ok(user);
     }
+
+    @GetMapping("/check-id")
+    public ResponseEntity<Map<String, Boolean>> checkUserId(@RequestParam String userId) {
+        boolean available = !userRepository.existsByUserId(userId);
+        return ResponseEntity.ok(Map.of("available", available));
+    }
+
+    @GetMapping("/check-nickname")
+    public ResponseEntity<Map<String, Boolean>> checkNickname(@RequestParam String nickname) {
+        boolean available = !userRepository.existsByUserNickname(nickname);
+        return ResponseEntity.ok(Map.of("available", available));
+    }
+
 }
