@@ -27,7 +27,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
         String path = request.getRequestURI();
-        return path.equals("/api/user/login") || path.equals("/api/user/register");
+        // OPTIONS 요청과 로그인, 회원가입 URL은 필터 적용 제외
+        return "OPTIONS".equalsIgnoreCase(request.getMethod())
+                || path.equals("/api/user/login")
+                || path.equals("/api/user/register");
     }
 
     @Override
@@ -36,16 +39,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws ServletException, IOException {
 
         String token = resolveToken(request);
+        System.out.println(">> JWT Filter called. Token = " + token);
 
         if (StringUtils.hasText(token) && jwtTokenProvider.validateToken(token)) {
             String userId = jwtTokenProvider.getUserId(token);
+            System.out.println(">> JWT valid, userId = " + userId);
             User user = userRepository.findByUserId(userId).orElse(null);
 
             if (user != null) {
                 UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(user.getUserId(), null, null); // userId만 principal로 전달
+                        new UsernamePasswordAuthenticationToken(user.getUserId(), null, null);
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authentication);
+                System.out.println(">> Authentication set: " + authentication.getPrincipal());
             }
         }
 

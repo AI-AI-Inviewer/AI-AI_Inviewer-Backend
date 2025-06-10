@@ -4,6 +4,7 @@ import com.inview.backend.config.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -33,11 +34,13 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // 추가
+                        .requestMatchers(HttpMethod.POST, "/api/comments").authenticated()
+                        .requestMatchers("/api/comments/**").permitAll()
                         .requestMatchers("/api/user/register", "/api/user/login").permitAll()
                         .requestMatchers("/api/user/check-id", "/api/user/check-nickname").permitAll()
                         .requestMatchers("/api/user/me").permitAll()
                         .requestMatchers("/api/community/**").permitAll()
-                        .requestMatchers("/api/comments/**").permitAll() // 🔥 댓글 GET 허용 추가
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
@@ -46,18 +49,20 @@ public class SecurityConfig {
     }
 
 
+
+
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.addAllowedOrigin("http://localhost:3000");
         configuration.addAllowedMethod("*");
         configuration.addAllowedHeader("*");
-        configuration.addAllowedHeader("Authorization");
         configuration.setAllowCredentials(true);
-
+        configuration.addExposedHeader("Authorization"); // 혹시 필요하면
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
     }
+
 
 }
