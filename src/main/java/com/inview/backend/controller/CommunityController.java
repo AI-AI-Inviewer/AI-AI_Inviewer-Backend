@@ -46,7 +46,6 @@ public class CommunityController {
     }
 
 
-
     // 🔥 POST: 게시글 작성
 // CommunityController.java
     @PostMapping
