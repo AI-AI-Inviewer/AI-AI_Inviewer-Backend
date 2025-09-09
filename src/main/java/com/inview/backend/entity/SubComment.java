@@ -1,6 +1,5 @@
 package com.inview.backend.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -21,20 +20,12 @@ public class SubComment {
     private Long subCommentNum;
 
     @Temporal(TemporalType.TIMESTAMP)
-    @Column(name = "SUB_COMMENT_DATE", nullable = false)
-    private Date subCommentDate;
-
-    @Column(name = "SUB_COMMENT_LIKE", nullable = false)
-    private int subCommentLike = 0;
-
-    @Column(name = "SUB_COMMENT_DISLIKE", nullable = false)
-    private int subCommentDislike = 0;
+    @Column(name = "SUB_COMMENT_DATE")
+    private Date subCommentDate = new Date();
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "USER_NUM")
-    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private User user;
-
 
     @ManyToOne
     @JoinColumn(name = "COMMENT_NUM")

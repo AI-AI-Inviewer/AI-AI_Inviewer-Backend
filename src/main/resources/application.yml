@@ -3,17 +3,17 @@ server:
 
 spring:
   datasource:
-    url: jdbc:oracle:thin:@localhost:1521:xe
-    username: DONGYANG
-    password: 1234
-    driver-class-name: oracle.jdbc.OracleDriver
+    url: ${DB_URL:jdbc:oracle:thin:@//localhost:1521/xe}
+    username: ${DB_USERNAME:DONGYANG}
+    password: ${DB_PASSWORD:1234}
   jpa:
     hibernate:
       ddl-auto: none
-    database-platform: org.hibernate.dialect.Oracle12cDialect
+    database-platform: org.hibernate.dialect.OracleDialect
     show-sql: true
+
 jwt:
-  secret: "MySuperSecretKey1234MySuperSecretKey1234!!"
+  secret: ${JWT_SECRET:change-me-in-prod}
 
-
-
+openai:
+  api-key: ${OPENAI_API_KEY:}

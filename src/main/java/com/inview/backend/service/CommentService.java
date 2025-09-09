@@ -20,26 +20,26 @@ public class CommentService {
     private final CommunityRepository communityRepository;
     private final UserRepository userRepository;
 
-    public Comment addComment(String userId, Long communityNum, String content) {
-        User user = userRepository.findByUserId(userId)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
-        Community community = communityRepository.findById(communityNum)
-                .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다."));
-
-        Comment comment = new Comment();
-        comment.setUser(user);
-        comment.setCommunity(community);
-        comment.setContent(content);
-        comment.setCommentDate(new Date());
-
-        return commentRepository.save(comment);
+    public Comment createComment(String userId, Long communityNum, String content) {
+        User user = userRepository.findByUserId(userId).orElseThrow(() -> new IllegalArgumentException("사용자 없음"));
+        Community community = communityRepository.findById(communityNum).orElseThrow(() -> new IllegalArgumentException("게시글 없음"));
+        Comment c = new Comment();
+        c.setUser(user);
+        c.setCommunity(community);
+        c.setContent(content);
+        c.setCommentDate(new Date());
+        return commentRepository.save(c);
     }
 
-    public List<Comment> getCommentsByCommunity(Long communityNum) {
+    public List<Comment> listByCommunity(Long communityNum) {
         return commentRepository.findByCommunityCommunityNum(communityNum);
     }
 
-    public void deleteComment(Long commentNum) {
+    public void deleteComment(Long commentNum, String currentUserId) {
+        Comment comment = commentRepository.findById(commentNum)
+                .orElseThrow(() -> new IllegalArgumentException("댓글이 존재하지 않습니다."));
+        String writerId = comment.getUser().getUserId();
+        if (!writerId.equals(currentUserId)) throw new SecurityException("본인만 삭제할 수 있습니다.");
         commentRepository.deleteById(commentNum);
     }
 }

@@ -2,12 +2,13 @@ package com.inview.backend.controller;
 
 import com.inview.backend.entity.SubComment;
 import com.inview.backend.service.SubCommentService;
-import com.inview.backend.config.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/subcomments")
@@ -15,33 +16,24 @@ import java.util.List;
 public class SubCommentController {
 
     private final SubCommentService subCommentService;
-    private final JwtTokenProvider jwtTokenProvider;
 
-    @PostMapping("/{commentNum}")
-    public ResponseEntity<SubComment> addSubComment(@RequestHeader("Authorization") String token,
-                                                    @PathVariable Long commentNum,
-                                                    @RequestBody String content) {
-        String userId = extractUserId(token);
-        SubComment subComment = subCommentService.addSubComment(userId, commentNum, content);
-        return ResponseEntity.ok(subComment);
+    @PostMapping
+    public SubComment create(@RequestBody Map<String, Object> body, Authentication authentication) {
+        String userId = authentication.getName();
+        Long commentNum = ((Number) body.get("commentNum")).longValue();
+        String content = (String) body.get("content");
+        return subCommentService.create(userId, commentNum, content);
     }
 
-    @GetMapping("/{commentNum}")
-    public ResponseEntity<List<SubComment>> getSubComments(@PathVariable Long commentNum) {
-        List<SubComment> subComments = subCommentService.getSubCommentsByComment(commentNum);
-        return ResponseEntity.ok(subComments);
+    @GetMapping("/comment/{commentNum}")
+    public List<SubComment> list(@PathVariable Long commentNum) {
+        return subCommentService.listByComment(commentNum);
     }
 
     @DeleteMapping("/{subCommentNum}")
-    public ResponseEntity<String> deleteSubComment(@PathVariable Long subCommentNum) {
-        subCommentService.deleteSubComment(subCommentNum);
-        return ResponseEntity.ok("대댓글 삭제 완료");
-    }
-
-    private String extractUserId(String token) {
-        if (token.startsWith("Bearer ")) {
-            token = token.substring(7);
-        }
-        return jwtTokenProvider.getUserId(token);
+    public ResponseEntity<?> delete(@PathVariable Long subCommentNum, Authentication authentication) {
+        String userId = authentication.getName();
+        subCommentService.delete(subCommentNum, userId);
+        return ResponseEntity.ok().build();
     }
 }

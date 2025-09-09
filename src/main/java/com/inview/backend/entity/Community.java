@@ -1,6 +1,5 @@
 package com.inview.backend.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -18,19 +17,19 @@ public class Community {
     @Column(name = "COMMUNITY_NUM")
     private Long communityNum;
 
-    @Column(name = "COMMUNITY_TITLE", nullable = false)
+    @Column(name = "COMMUNITY_TITLE", nullable = false, length = 200)
     private String communityTitle;
 
-    @Column(name = "COMMUNITY_CONTENT", nullable = false)
+    @Column(name = "COMMUNITY_CONTENT", nullable = false, length = 4000)
     private String communityContent;
 
-    @Column(name = "COMMUNITY_DATE", nullable = false)
     @Temporal(TemporalType.TIMESTAMP)
-    private Date communityDate;
+    @Column(name = "COMMUNITY_WRITE_DATE")
+    private Date communityWriteDate = new Date();
 
-    @Column(name = "COMMUNITY_UPDATE", nullable = false)
     @Temporal(TemporalType.TIMESTAMP)
-    private Date communityUpdate;
+    @Column(name = "COMMUNITY_UPDATE")
+    private Date communityUpdate = new Date();
 
     @Column(name = "COMMUNITY_VIEWCOUNT")
     private Long communityViewCount = 0L;
@@ -41,7 +40,5 @@ public class Community {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "USER_NUM")
-    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private User user;
-
 }

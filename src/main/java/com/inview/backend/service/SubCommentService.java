@@ -20,26 +20,23 @@ public class SubCommentService {
     private final CommentRepository commentRepository;
     private final UserRepository userRepository;
 
-    public SubComment addSubComment(String userId, Long commentNum, String content) {
-        User user = userRepository.findByUserId(userId)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
-        Comment comment = commentRepository.findById(commentNum)
-                .orElseThrow(() -> new IllegalArgumentException("댓글을 찾을 수 없습니다."));
+    public SubComment create(String userId, Long commentNum, String content) {
+        User user = userRepository.findByUserId(userId).orElseThrow(() -> new IllegalArgumentException("사용자 없음"));
+        Comment comment = commentRepository.findById(commentNum).orElseThrow(() -> new IllegalArgumentException("댓글 없음"));
 
-        SubComment subComment = new SubComment();
-        subComment.setUser(user);
-        subComment.setComment(comment);
-        subComment.setContent(content);
-        subComment.setSubCommentDate(new Date());
-
-        return subCommentRepository.save(subComment);
+        SubComment sc = new SubComment();
+        sc.setUser(user);
+        sc.setComment(comment);
+        sc.setContent(content);
+        sc.setSubCommentDate(new Date());
+        return subCommentRepository.save(sc);
     }
 
-    public List<SubComment> getSubCommentsByComment(Long commentNum) {
+    public List<SubComment> listByComment(Long commentNum) {
         return subCommentRepository.findByCommentCommentNum(commentNum);
     }
 
-    public void deleteSubComment(Long subCommentNum) {
+    public void delete(Long subCommentNum, String userId) {
         subCommentRepository.deleteById(subCommentNum);
     }
 }

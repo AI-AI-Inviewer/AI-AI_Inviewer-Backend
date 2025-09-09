@@ -8,4 +8,3 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface CommunityRepository extends JpaRepository<Community, Long> {
     Page<Community> findByCommunityTitleContaining(String keyword, Pageable pageable);
 }
-

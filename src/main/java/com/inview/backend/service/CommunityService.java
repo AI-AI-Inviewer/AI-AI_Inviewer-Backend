@@ -5,11 +5,11 @@ import com.inview.backend.entity.User;
 import com.inview.backend.repository.CommunityRepository;
 import com.inview.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
-import java.util.List;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -18,38 +18,47 @@ public class CommunityService {
     private final CommunityRepository communityRepository;
     private final UserRepository userRepository;
 
-    // 게시글 등록
-    public Community createCommunity(String userId, Community community) {
+    public Community create(String userId, String title, String content, String resume) {
         User user = userRepository.findByUserId(userId)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
-        community.setUser(user);
-        community.setCommunityDate(new Date());
-        community.setCommunityUpdate(new Date());
-        return communityRepository.save(community);
+                .orElseThrow(() -> new IllegalArgumentException("사용자 없음"));
+        Community c = new Community();
+        c.setUser(user);
+        c.setCommunityTitle(title);
+        c.setCommunityContent(content);
+        c.setCommunityResume(resume);
+        c.setCommunityWriteDate(new Date());
+        c.setCommunityUpdate(new Date());
+        return communityRepository.save(c);
     }
 
-    // 전체 게시글 조회
-    public List<Community> getAllCommunities() {
-        return communityRepository.findAll();
-    }
-
-    // 특정 게시글 조회
-    public Optional<Community> getCommunityById(Long id) {
-        return communityRepository.findById(id);
-    }
-
-    // 게시글 수정
-    public Community updateCommunity(Long id, Community updatedCommunity) {
-        Community existing = communityRepository.findById(id)
+    public Community update(Long id, String userId, String title, String content, String resume) {
+        Community c = communityRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("게시글이 존재하지 않습니다."));
-        existing.setCommunityTitle(updatedCommunity.getCommunityTitle());
-        existing.setCommunityContent(updatedCommunity.getCommunityContent());
-        existing.setCommunityUpdate(new Date());
-        return communityRepository.save(existing);
+        if (!c.getUser().getUserId().equals(userId)) throw new SecurityException("본인만 수정할 수 있습니다.");
+        c.setCommunityTitle(title);
+        c.setCommunityContent(content);
+        c.setCommunityResume(resume);
+        c.setCommunityUpdate(new Date());
+        return communityRepository.save(c);
     }
 
-    // 게시글 삭제
-    public void deleteCommunity(Long id) {
+    public void delete(Long id, String userId) {
+        Community c = communityRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("게시글이 존재하지 않습니다."));
+        if (!c.getUser().getUserId().equals(userId)) throw new SecurityException("본인만 삭제할 수 있습니다.");
         communityRepository.deleteById(id);
+    }
+
+    public Page<Community> list(Pageable pageable) {
+        return communityRepository.findAll(pageable);
+    }
+
+    public Page<Community> search(String keyword, Pageable pageable) {
+        return communityRepository.findByCommunityTitleContaining(keyword, pageable);
+    }
+
+    public Community get(Long id) {
+        return communityRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("게시글이 존재하지 않습니다."));
     }
 }

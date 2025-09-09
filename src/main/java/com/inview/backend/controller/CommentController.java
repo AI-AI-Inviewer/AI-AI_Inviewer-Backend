@@ -18,24 +18,20 @@ public class CommentController {
     private final CommentService commentService;
 
     @PostMapping
-    public ResponseEntity<Comment> addComment(
-            @RequestBody CommentRequestDto requestDto,
-            Authentication authentication
-    ) {
-        String userId = (String) authentication.getPrincipal();
-        Comment comment = commentService.addComment(userId, requestDto.getCommunityNum(), requestDto.getContent());
-        return ResponseEntity.ok(comment);
+    public Comment create(@RequestBody CommentRequestDto dto, Authentication authentication) {
+        String userId = authentication.getName();
+        return commentService.createComment(userId, dto.getCommunityNum(), dto.getContent());
     }
 
-    @GetMapping("/{communityNum}")
-    public ResponseEntity<List<Comment>> getCommentsByCommunity(@PathVariable Long communityNum) {
-        List<Comment> comments = commentService.getCommentsByCommunity(communityNum);
-        return ResponseEntity.ok(comments);
+    @GetMapping("/community/{communityNum}")
+    public List<Comment> list(@PathVariable Long communityNum) {
+        return commentService.listByCommunity(communityNum);
     }
 
     @DeleteMapping("/{commentNum}")
-    public ResponseEntity<Void> deleteComment(@PathVariable Long commentNum) {
-        commentService.deleteComment(commentNum);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<?> delete(@PathVariable Long commentNum, Authentication authentication) {
+        String currentUserId = authentication.getName();
+        commentService.deleteComment(commentNum, currentUserId);
+        return ResponseEntity.ok().build();
     }
 }

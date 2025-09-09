@@ -1,10 +1,11 @@
 package com.inview.backend.dto;
 
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
-@Data
+@Getter @Setter
 public class CommunityRequestDto {
     private String title;
     private String content;
-    private String resume;  // 필요 시 사용
+    private String resume;
 }
