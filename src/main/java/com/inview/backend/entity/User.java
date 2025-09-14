@@ -12,7 +12,12 @@ import java.util.Collections;
 public class User implements UserDetails {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @SequenceGenerator(
+            name = "user_seq",
+            sequenceName = "USER_SEQ", // DB에 있는 시퀀스 이름
+            allocationSize = 1
+    )
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "user_seq")
     @Column(name = "USER_NUM")
     private Long userNum;
 

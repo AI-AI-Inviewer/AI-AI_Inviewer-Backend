@@ -1,7 +1,7 @@
 package com.inview.backend.controller;
 
 import com.inview.backend.dto.CommentRequestDto;
-import com.inview.backend.entity.Comment;
+import com.inview.backend.dto.CommentResponseDto;
 import com.inview.backend.service.CommentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -17,17 +17,26 @@ public class CommentController {
 
     private final CommentService commentService;
 
+    // 댓글 등록 (로그인 필요)
     @PostMapping
-    public Comment create(@RequestBody CommentRequestDto dto, Authentication authentication) {
+    public CommentResponseDto create(@RequestBody CommentRequestDto dto, Authentication authentication) {
         String userId = authentication.getName();
         return commentService.createComment(userId, dto.getCommunityNum(), dto.getContent());
     }
 
-    @GetMapping("/community/{communityNum}")
-    public List<Comment> list(@PathVariable Long communityNum) {
+    // ✅ 프론트가 호출하는 형태: GET /api/comments/{communityNum}
+    @GetMapping("/{communityNum}")
+    public List<CommentResponseDto> list(@PathVariable Long communityNum) {
         return commentService.listByCommunity(communityNum);
     }
 
+    // (선택) 과거 경로 호환: /api/comments/community/{communityNum}
+    @GetMapping("/community/{communityNum}")
+    public List<CommentResponseDto> listCompat(@PathVariable Long communityNum) {
+        return commentService.listByCommunity(communityNum);
+    }
+
+    // 댓글 삭제 (로그인 필요)
     @DeleteMapping("/{commentNum}")
     public ResponseEntity<?> delete(@PathVariable Long commentNum, Authentication authentication) {
         String currentUserId = authentication.getName();

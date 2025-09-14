@@ -1,7 +1,7 @@
 package com.inview.backend.controller;
 
 import com.inview.backend.dto.CommunityRequestDto;
-import com.inview.backend.entity.Community;
+import com.inview.backend.dto.CommunityResponseDto;
 import com.inview.backend.service.CommunityService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -19,36 +19,43 @@ public class CommunityController {
 
     private final CommunityService communityService;
 
+    // 목록 (DTO 반환)
     @GetMapping
-    public Page<Community> list(@RequestParam(defaultValue = "0") int page,
-                                @RequestParam(defaultValue = "10") int size,
-                                @RequestParam(defaultValue = "communityNum,desc") String sort) {
+    public Page<CommunityResponseDto> list(@RequestParam(defaultValue = "0") int page,
+                                           @RequestParam(defaultValue = "10") int size,
+                                           @RequestParam(defaultValue = "communityNum,desc") String sort) {
         String[] s = sort.split(",");
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.fromString(s[1]), s[0]));
         return communityService.list(pageable);
     }
 
+    // 검색 (DTO 반환)
     @GetMapping("/search")
-    public Page<Community> search(@RequestParam String keyword,
-                                  @RequestParam(defaultValue = "0") int page,
-                                  @RequestParam(defaultValue = "10") int size) {
+    public Page<CommunityResponseDto> search(@RequestParam String keyword,
+                                             @RequestParam(defaultValue = "0") int page,
+                                             @RequestParam(defaultValue = "10") int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "communityNum"));
         return communityService.search(keyword, pageable);
     }
 
+    // 상세 (DTO 반환)
     @GetMapping("/{id}")
-    public Community get(@PathVariable Long id) {
+    public CommunityResponseDto get(@PathVariable Long id) {
         return communityService.get(id);
     }
 
+    // 생성 (DTO 반환)
     @PostMapping
-    public Community create(@RequestBody CommunityRequestDto dto, Authentication authentication) {
-        String userId = authentication.getName();
+    public CommunityResponseDto create(@RequestBody CommunityRequestDto dto, Authentication authentication) {
+        String userId = authentication.getName(); // JwtAuthenticationFilter에서 세팅
         return communityService.create(userId, dto.getTitle(), dto.getContent(), dto.getResume());
     }
 
+    // 수정 (DTO 반환)
     @PutMapping("/{id}")
-    public Community update(@PathVariable Long id, @RequestBody CommunityRequestDto dto, Authentication authentication) {
+    public CommunityResponseDto update(@PathVariable Long id,
+                                       @RequestBody CommunityRequestDto dto,
+                                       Authentication authentication) {
         String userId = authentication.getName();
         return communityService.update(id, userId, dto.getTitle(), dto.getContent(), dto.getResume());
     }

@@ -25,7 +25,8 @@ public class SubCommentController {
         return subCommentService.create(userId, commentNum, content);
     }
 
-    @GetMapping("/comment/{commentNum}")
+    // ✅ 프론트가 읽기 쉬운 경로: GET /api/subcomments/{commentNum}
+    @GetMapping("/{commentNum}")
     public List<SubComment> list(@PathVariable Long commentNum) {
         return subCommentService.listByComment(commentNum);
     }

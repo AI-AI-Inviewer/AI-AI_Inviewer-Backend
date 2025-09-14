@@ -15,9 +15,11 @@ import java.util.Date;
 public class SubComment {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "sub_comment_seq")
+    @SequenceGenerator(name = "sub_comment_seq", sequenceName = "SUB_COMMENT_SEQ", allocationSize = 1)
     @Column(name = "SUB_COMMENT_NUM")
     private Long subCommentNum;
+
 
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "SUB_COMMENT_DATE")
