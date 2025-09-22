@@ -1,5 +1,5 @@
 server:
-  port: 10000
+  port: 10002
 
 spring:
   datasource:
@@ -7,13 +7,21 @@ spring:
     username: ${DB_USERNAME:DONGYANG}
     password: ${DB_PASSWORD:1234}
   jpa:
-    hibernate:
-      ddl-auto: none
-    database-platform: org.hibernate.community.dialect.Oracle10gDialect
+    properties:
+      hibernate:
+        dialect: org.hibernate.community.dialect.OracleLegacyDialect
     show-sql: true
 
+elevenlabs:
+  base-url: https://api.elevenlabs.io
+  api-key: ${ELEVENLABS_API_KEY}
+#  project-id: K5GMjJiqLM5Ki9JHJEBG
+  model-id: eleven_multilingual_v2
+  default-voice-id: 21m00Tcm4TlvDq8ikWAM
+  output-format: mp3_44100_128
 jwt:
   secret: ${JWT_SECRET:change-me-in-prod}
 
 openai:
   api-key: ${OPENAI_API_KEY:}
+
