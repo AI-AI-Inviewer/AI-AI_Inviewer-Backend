@@ -35,6 +35,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/", "/index.html", "/static/**", "/assets/**", "/actuator/health", "/error").permitAll()
                         .requestMatchers("/api/user/register", "/api/user/login").permitAll()
+                        .requestMatchers("/api/auth/refresh").permitAll()   // ★ 추가
                         .requestMatchers(HttpMethod.GET, "/api/community/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/comments/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/user/me").authenticated()
@@ -43,6 +44,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.DELETE,"/api/comments/**").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/chat").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/chat/stt").authenticated()
+                        .requestMatchers("/api/auth/refresh").permitAll()
+                        // /api/chat/tts 는 anyRequest().authenticated()에 걸려서 인증 필요(의도대로)
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(e -> e
@@ -66,20 +69,20 @@ public class SecurityConfig {
     }
 
     @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
+    CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration c = new CorsConfiguration();
-        c.setAllowedOrigins(List.of(
-                "http://localhost:3000", "http://127.0.0.1:3000",
-                "https://aiinviewer.co.kr", "https://www.aiinviewer.co.kr"
+        c.setAllowedOriginPatterns(List.of(
+                "http://localhost:*",
+                "http://127.0.0.1:*",
+                "https://aiinviewer.co.kr",
+                "https://www.aiinviewer.co.kr"
         ));
         c.setAllowedMethods(List.of("GET","POST","PUT","DELETE","PATCH","OPTIONS"));
-        c.setAllowedHeaders(List.of("Authorization","Content-Type","Accept","X-Requested-With"));
-        c.setExposedHeaders(List.of("Authorization"));
+        c.setAllowedHeaders(List.of("*"));
         c.setAllowCredentials(true);
         c.setMaxAge(3600L);
-
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", c);
-        return source;
+        UrlBasedCorsConfigurationSource s = new UrlBasedCorsConfigurationSource();
+        s.registerCorsConfiguration("/**", c);
+        return s;
     }
 }
