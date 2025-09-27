@@ -1,6 +1,8 @@
 server:
   port: 10002
-
+  servlet:
+    context-path: /         # ← 여기!
+  forward-headers-strategy: framework
 spring:
   datasource:
     url: ${DB_URL:jdbc:oracle:thin:@//localhost:1521/xe}
@@ -15,7 +17,7 @@ spring:
 elevenlabs:
   base-url: https://api.elevenlabs.io
   api-key: ${ELEVENLABS_API_KEY}
-#  project-id: K5GMjJiqLM5Ki9JHJEBG
+  #  project-id: K5GMjJiqLM5Ki9JHJEBG
   model-id: eleven_multilingual_v2
   default-voice-id: 21m00Tcm4TlvDq8ikWAM
   output-format: mp3_44100_128
@@ -25,3 +27,6 @@ jwt:
 openai:
   api-key: ${OPENAI_API_KEY:}
 
+logging:
+  level:
+    org.springframework.security: DEBUG

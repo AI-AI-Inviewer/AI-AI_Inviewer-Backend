@@ -4,17 +4,20 @@ import com.inview.backend.config.JwtTokenProvider;
 import com.inview.backend.entity.User;
 import com.inview.backend.repository.UserRepository;
 import com.inview.backend.service.UserService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Duration;
 import java.util.Map;
 
 @RestController
 @RequestMapping("/api/user")
-@CrossOrigin(origins = "http://localhost:3000")
 @RequiredArgsConstructor
 public class AuthController {
 
@@ -28,27 +31,73 @@ public class AuthController {
         return ResponseEntity.ok(Map.of("userNum", created.getUserNum()));
     }
 
-    // 프런트가 { userId, userPassword }로 보내도 동작하게 하고,
-    // 응답은 '토큰 문자열'을 그대로 반환 (response.data 에 바로 저장됨)
-    @PostMapping(value = "/login", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.TEXT_PLAIN_VALUE)
-    public ResponseEntity<String> login(@RequestBody Map<String, String> req) {
+    /** 로그인: 아이디/비번 검증 → JWT 발급 → 환경별 쿠키 옵션으로 Set-Cookie + JSON 반환 */
+    @PostMapping(
+            value = "/login",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public ResponseEntity<?> login(@RequestBody Map<String, String> req, HttpServletRequest request) {
         String userId = req.get("userId");
-
-        // password 또는 userPassword 둘 다 허용
-        String password = req.get("password");
-        if (password == null) password = req.get("userPassword");
+        String password = req.getOrDefault("password", req.get("userPassword"));
 
         if (userId == null || userId.isBlank() || password == null || password.isBlank()) {
-            return ResponseEntity.badRequest().body("userId와 password는 필수입니다.");
+            return ResponseEntity.badRequest().body(Map.of("ok", false, "message", "userId와 password는 필수입니다."));
         }
 
         User user = userService.authenticate(userId, password);
-        String token = jwtTokenProvider.createToken(user.getUserId());
+        String jwt = jwtTokenProvider.createToken(user.getUserId());
 
-        // 순수 문자열로 반환 → 프론트의 response.data 가 바로 토큰이 됨
-        return ResponseEntity.ok(token);
+        boolean isProd = request.getServerName() != null &&
+                request.getServerName().endsWith("aiinviewer.co.kr");
+
+        ResponseCookie.ResponseCookieBuilder cb = ResponseCookie.from("ACCESS_TOKEN", jwt)
+                .httpOnly(true)
+                .path("/")
+                .maxAge(Duration.ofDays(7));
+
+        if (isProd) {
+            cb.secure(true).sameSite("None").domain(".aiinviewer.co.kr");
+        } else {
+            // 로컬 개발환경: http라 secure=false, domain 미지정(호스트 한정 쿠키), sameSite=Lax
+            cb.secure(false).sameSite("Lax");
+        }
+
+        ResponseCookie jwtCookie = cb.build();
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, jwtCookie.toString())
+                .body(Map.of(
+                        "ok", true,
+                        "token", jwt,                 // 선택: 필요 없으면 제거 가능
+                        "userId", user.getUserId(),
+                        "userName", user.getUserName()
+                ));
     }
 
+    /** 로그아웃: 쿠키 제거 */
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(HttpServletRequest request) {
+        boolean isProd = request.getServerName() != null &&
+                request.getServerName().endsWith("aiinviewer.co.kr");
+
+        ResponseCookie.ResponseCookieBuilder cb = ResponseCookie.from("ACCESS_TOKEN", "")
+                .httpOnly(true)
+                .path("/")
+                .maxAge(0);
+
+        if (isProd) {
+            cb.secure(true).sameSite("None").domain(".aiinviewer.co.kr");
+        } else {
+            cb.secure(false).sameSite("Lax");
+        }
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, cb.build().toString())
+                .body(Map.of("ok", true));
+    }
+
+    /** 인증 확인 */
     @GetMapping("/me")
     public ResponseEntity<?> me(Authentication authentication) {
         if (authentication == null) return ResponseEntity.status(401).build();
