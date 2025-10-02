@@ -3,33 +3,38 @@ package com.inview.backend.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-
 import java.time.Instant;
 
 @Entity
-@Table(name = "EMAIL_VERIFICATION_CODE")
-@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+@Table(name = "email_verification_code")
+@Getter @Setter
+@NoArgsConstructor @AllArgsConstructor
+@Builder
 public class EmailVerificationCode {
 
     @Id
-    @Column(name = "ID", length = 36)
+    @Column(length = 36, nullable = false)
     private String id;
 
-    @Column(name = "EMAIL", length = 320, nullable = false)
-    private String email;
+    @Column(length = 254, nullable = false)
+    private String email;               // 항상 소문자로 저장
 
-    @Column(name = "CODE_HASH", length = 120, nullable = false)
-    private String codeHash;
+    @Column(name = "code_hash", length = 100, nullable = false)
+    private String codeHash;            // Bcrypt(60) 충분히 커야 함
 
-    @Column(name = "EXPIRES_AT", nullable = false)
-    private Instant expiresAt;
-
-    @Column(name = "CREATED_AT", nullable = false)
+    @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
-    @Column(name = "VERIFIED_AT")
+    @Column(name = "expires_at", nullable = false)
+    private Instant expiresAt;
+
+    @Column
+    private Integer attempts;
+
+    @Column(name = "verified_at")
     private Instant verifiedAt;
 
-    @Column(name = "ATTEMPTS", nullable = false)
-    private Integer attempts;
+    public void bumpAttempts() {
+        this.attempts = (this.attempts == null ? 0 : this.attempts) + 1;
+    }
 }
