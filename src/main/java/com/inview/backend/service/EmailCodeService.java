@@ -12,19 +12,19 @@ import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.UUID;
 
-@Service
 @RequiredArgsConstructor
+@Service
 public class EmailCodeService {
     private final EmailVerificationCodeRepository repo;
     private final EmailService emailService;
-    private final PasswordEncoder encoder; // SecurityConfig의 BCryptPasswordEncoder 빈 주입
+    private final PasswordEncoder encoder;          // ✅ 빈 주입
     private final SecureRandom rnd = new SecureRandom();
 
-    private String normalizeEmail(String e) {
-        return e == null ? "" : e.trim().toLowerCase();
+    private String normalizeEmail(String e){
+        return e == null ? "" : e.trim().toLowerCase();      // ✅ trim + lower
     }
-    private String normalizeCode(String c) {
-        return c == null ? "" : c.trim().replaceAll("\\s+", "");
+    private String normalizeCode(String c){
+        return c == null ? "" : c.trim().replaceAll("\\s+",""); // ✅ 모든 공백 제거
     }
 
     private String generate6Digits() {
@@ -34,7 +34,7 @@ public class EmailCodeService {
 
     @Transactional
     public void sendCode(String rawEmail) {
-        String email = normalizeEmail(rawEmail);
+        String email = normalizeEmail(rawEmail);              // ✅
         String code  = generate6Digits();
         String hash  = encoder.encode(code);
         Instant now  = Instant.now();
@@ -44,7 +44,7 @@ public class EmailCodeService {
                 .email(email)
                 .codeHash(hash)
                 .createdAt(now)
-                .expiresAt(now.plusSeconds(10 * 60)) // 10분
+                .expiresAt(now.plusSeconds(10 * 60))
                 .attempts(0)
                 .build();
         repo.save(entity);
@@ -54,29 +54,28 @@ public class EmailCodeService {
 
     @Transactional
     public boolean verifyCode(String rawEmail, String rawCode) {
-        String email = normalizeEmail(rawEmail);
-        String code  = normalizeCode(rawCode);
+        String email = normalizeEmail(rawEmail);              // ✅
+        String code  = normalizeCode(rawCode);                // ✅
 
         Instant now = Instant.now();
-        var opt = repo.findTopByEmailIgnoreCaseAndExpiresAtAfterOrderByCreatedAtDesc(email, now);
-        if (opt.isEmpty()) return false;                 // 만료/선요청 없음
+        var opt = repo.findTopByEmailIgnoreCaseAndExpiresAtAfterOrderByCreatedAtDesc(email, now); // ✅ IgnoreCase
+        if (opt.isEmpty()) return false;
 
         EmailVerificationCode latest = opt.get();
-        if (latest.getVerifiedAt() != null) return true; // 이미 검증됨
-        if (latest.getAttempts() != null && latest.getAttempts() >= 10) return false; // 시도 제한
+        if (latest.getVerifiedAt() != null) return true;
+        if (latest.getAttempts() != null && latest.getAttempts() >= 10) return false;
 
         latest.setAttempts((latest.getAttempts() == null ? 0 : latest.getAttempts()) + 1);
 
         boolean ok = encoder.matches(code, latest.getCodeHash());
         if (ok) latest.setVerifiedAt(now);
-
         repo.save(latest);
         return ok;
     }
 
     @Transactional(readOnly = true)
     public boolean isRecentlyVerified(String rawEmail) {
-        String email = normalizeEmail(rawEmail);
+        String email = normalizeEmail(rawEmail);              // ✅
         return repo.findTopByEmailOrderByCreatedAtDesc(email)
                 .map(v -> v.getVerifiedAt() != null && v.getExpiresAt().isAfter(Instant.now()))
                 .orElse(false);
