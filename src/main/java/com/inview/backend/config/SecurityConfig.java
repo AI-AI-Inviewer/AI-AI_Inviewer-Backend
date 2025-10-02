@@ -34,19 +34,30 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/", "/index.html", "/static/**", "/assets/**", "/actuator/health", "/error").permitAll()
-                        .requestMatchers("/api/user/register", "/api/user/login").permitAll()
-                        .requestMatchers("/api/auth/refresh").permitAll()   // ★ 추가
-                        .requestMatchers(HttpMethod.GET, "/api/community/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/comments/**").permitAll()
+
+                        // ✅ 회원가입 전 공개 엔드포인트
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/user/check-id",
+                                "/api/user/check-email"          // 쓰면 같이 허용
+                        ).permitAll()
+                        .requestMatchers(HttpMethod.POST,
+                                "/api/user/register",
+                                "/api/user/login",
+                                "/api/user/email-code/send",     // 너 코드의 경로명과 일치하게
+                                "/api/user/email-code/verify"    // 위와 동일
+                        ).permitAll()
+
+                        // 공개 조회
+                        .requestMatchers(HttpMethod.GET, "/api/community/**", "/api/comments/**").permitAll()
+
+                        // 인증 필요
                         .requestMatchers(HttpMethod.GET, "/api/user/me").authenticated()
-                        .requestMatchers(HttpMethod.POST, "/api/community/**").authenticated()
-                        .requestMatchers(HttpMethod.POST, "/api/comments").authenticated()
-                        .requestMatchers(HttpMethod.DELETE,"/api/comments/**").authenticated()
-                        .requestMatchers(HttpMethod.POST, "/api/chat").authenticated()
-                        .requestMatchers(HttpMethod.POST, "/api/chat/stt").authenticated()
-                        .requestMatchers("/api/user/email-code/send", "/api/user/email-code/verify").permitAll()
-                        .requestMatchers("/api/user/register").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/community/**", "/api/comments", "/api/chat", "/api/chat/stt").authenticated()
+                        .requestMatchers(HttpMethod.DELETE, "/api/comments/**").authenticated()
+
+                        // 토큰 갱신 공개(중복 제거)
                         .requestMatchers("/api/auth/refresh").permitAll()
+
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(e -> e
