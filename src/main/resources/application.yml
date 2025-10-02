@@ -9,7 +9,7 @@ spring:
     username: ${DB_USERNAME:DONGYANG}
     password: ${DB_PASSWORD:1234}
     mail:                                    # 서버 개발 버전
-      host: 127.0.0.1
+      host: mail
       port: 587
       username: sender@aiinviewer.co.kr
       password: ${MAIL_PASSWORD}
