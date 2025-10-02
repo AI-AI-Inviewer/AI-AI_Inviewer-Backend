@@ -28,38 +28,40 @@ public class AuthController {
     private final UserService userService;
     private final EmailCodeService emailCodeService;
 
-    // ---------------- 이메일 인증 ----------------
-
-    @PostMapping("/email-code/send")
-    public ResponseEntity<?> sendEmailCode(@RequestBody Map<String, String> req) {
-        String email = req.getOrDefault("email","").trim();
-        if (email.isBlank()) return bad("이메일이 필요합니다.");
-        if (userRepository.existsByUserEmail(email)) return bad("이미 가입된 이메일입니다.");
-        emailCodeService.sendCode(email);
-        return ok();
-    }
-
-    @PostMapping("/email-code/verify")
-    public ResponseEntity<?> verifyEmailCode(@RequestBody Map<String, String> req) {
-        String email = req.getOrDefault("email","").trim();
-        String code  = req.getOrDefault("code","").trim();
-        if (email.isBlank() || code.isBlank()) return bad("email과 code는 필수입니다.");
-        boolean ok = emailCodeService.verifyCode(email, code);
-        return ok ? ok() : ResponseEntity.status(400).body(Map.of("ok", false, "message", "인증 코드가 유효하지 않습니다."));
-    }
-
-    // ---------------- 회원가입 ----------------
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody User req) {
-        if (userRepository.existsByUserEmail(req.getUserEmail())) {
+        if (userRepository.existsByUserEmail(req.getUserEmail()))
             return ResponseEntity.badRequest().body(Map.of("ok", false, "message", "이미 사용 중인 이메일입니다."));
-        }
-        if (!emailCodeService.isRecentlyVerified(req.getUserEmail())) {
+
+        if (!emailCodeService.isRecentlyVerified(req.getUserEmail()))
             return ResponseEntity.status(403).body(Map.of("ok", false, "message", "이메일 인증이 필요합니다."));
-        }
+
         User created = userService.register(req);
         return ResponseEntity.ok(Map.of("ok", true, "userNum", created.getUserNum()));
+    }
+
+    /** 이메일 인증코드 발송 */
+    @PostMapping("/email-code/send")
+    public ResponseEntity<?> sendEmailCode(@RequestBody Map<String, String> req) {
+        String email = (req.getOrDefault("email","")).trim();
+        if (email.isBlank()) return ResponseEntity.badRequest().body(Map.of("ok", false, "message", "이메일이 필요합니다."));
+        if (userRepository.existsByUserEmail(email)) return ResponseEntity.badRequest().body(Map.of("ok", false, "message", "이미 가입된 이메일입니다."));
+        emailCodeService.sendCode(email);
+        return ResponseEntity.ok(Map.of("ok", true));
+    }
+
+    /** 이메일 인증코드 검증 */
+    @PostMapping("/email-code/verify")
+    public ResponseEntity<?> verifyEmailCode(@RequestBody Map<String, String> req) {
+        String email = (req.getOrDefault("email","")).trim();
+        String code  = (req.getOrDefault("code","")).trim();
+        if (email.isBlank() || code.isBlank())
+            return ResponseEntity.badRequest().body(Map.of("ok", false, "message", "email과 code는 필수입니다."));
+
+        boolean ok = emailCodeService.verifyCode(email, code);
+        return ok ? ResponseEntity.ok(Map.of("ok", true))
+                : ResponseEntity.status(400).body(Map.of("ok", false, "message", "인증 코드가 유효하지 않습니다."));
     }
 
     // ---------------- 로그인/로그아웃/유틸 ----------------
