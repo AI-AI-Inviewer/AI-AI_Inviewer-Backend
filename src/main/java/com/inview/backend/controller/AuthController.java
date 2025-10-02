@@ -28,51 +28,50 @@ public class AuthController {
     private final UserService userService;
     private final EmailCodeService emailCodeService;
 
-
+    // 회원가입
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody User req) {
-        if (userRepository.existsByUserEmail(req.getUserEmail()))
-            return ResponseEntity.badRequest().body(Map.of("ok", false, "message", "이미 사용 중인 이메일입니다."));
-
-        if (!emailCodeService.isRecentlyVerified(req.getUserEmail()))
+        String email = (req.getUserEmail() == null ? "" : req.getUserEmail().trim().toLowerCase());
+        if (userRepository.existsByUserEmail(email)) {
+            return bad("이미 사용 중인 이메일입니다.");
+        }
+        if (!emailCodeService.isRecentlyVerified(email)) {
             return ResponseEntity.status(403).body(Map.of("ok", false, "message", "이메일 인증이 필요합니다."));
-
+        }
+        req.setUserEmail(email); // 정규화 저장
         User created = userService.register(req);
-        return ResponseEntity.ok(Map.of("ok", true, "userNum", created.getUserNum()));
+        return ok(Map.of("userNum", created.getUserNum()));
     }
 
-    /** 이메일 인증코드 발송 */
+    // 인증코드 발송
     @PostMapping("/email-code/send")
     public ResponseEntity<?> sendEmailCode(@RequestBody Map<String, String> req) {
-        String email = (req.getOrDefault("email","")).trim();
-        if (email.isBlank()) return ResponseEntity.badRequest().body(Map.of("ok", false, "message", "이메일이 필요합니다."));
-        if (userRepository.existsByUserEmail(email)) return ResponseEntity.badRequest().body(Map.of("ok", false, "message", "이미 가입된 이메일입니다."));
+        String email = (req.getOrDefault("email", "").trim());
+        if (email.isBlank()) return bad("이메일이 필요합니다.");
+        if (userRepository.existsByUserEmail(email.toLowerCase())) return bad("이미 가입된 이메일입니다.");
         emailCodeService.sendCode(email);
-        return ResponseEntity.ok(Map.of("ok", true));
+        return ok();
     }
 
-    /** 이메일 인증코드 검증 */
+    // 인증코드 검증
     @PostMapping("/email-code/verify")
     public ResponseEntity<?> verifyEmailCode(@RequestBody Map<String, String> req) {
-        String email = (req.getOrDefault("email","")).trim();
-        String code  = (req.getOrDefault("code","")).trim();
-        if (email.isBlank() || code.isBlank())
-            return ResponseEntity.badRequest().body(Map.of("ok", false, "message", "email과 code는 필수입니다."));
+        String email = (req.getOrDefault("email", "").trim());
+        String code  = (req.getOrDefault("code", "").trim());
+        if (email.isBlank() || code.isBlank()) return bad("email과 code는 필수입니다.");
 
         boolean ok = emailCodeService.verifyCode(email, code);
-        return ok ? ResponseEntity.ok(Map.of("ok", true))
-                : ResponseEntity.status(400).body(Map.of("ok", false, "message", "인증 코드가 유효하지 않습니다."));
+        if (!ok) return ResponseEntity.status(400).body(Map.of("ok", false, "message", "인증 코드가 유효하지 않습니다."));
+        return ok();
     }
 
-    // ---------------- 로그인/로그아웃/유틸 ----------------
-
+    // 로그인
     @PostMapping(value = "/login", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> login(@RequestBody Map<String, String> req, HttpServletRequest request) {
-        String userId = req.get("userId");
+        String userId   = req.get("userId");
         String password = req.getOrDefault("password", req.get("userPassword"));
-
         if (userId == null || userId.isBlank() || password == null || password.isBlank()) {
-            return ResponseEntity.badRequest().body(Map.of("ok", false, "message", "userId와 password는 필수입니다."));
+            return bad("userId와 password는 필수입니다.");
         }
 
         User user = userService.authenticate(userId, password);
@@ -81,10 +80,15 @@ public class AuthController {
         boolean isProd = request.getServerName() != null && request.getServerName().endsWith("aiinviewer.co.kr");
 
         ResponseCookie.ResponseCookieBuilder cb = ResponseCookie.from("ACCESS_TOKEN", jwt)
-                .httpOnly(true).path("/").maxAge(Duration.ofDays(7));
+                .httpOnly(true)
+                .path("/")
+                .maxAge(Duration.ofDays(7));
 
-        if (isProd) cb.secure(true).sameSite("None").domain(".aiinviewer.co.kr");
-        else cb.secure(false).sameSite("Lax");
+        if (isProd) {
+            cb.secure(true).sameSite("None").domain(".aiinviewer.co.kr");
+        } else {
+            cb.secure(false).sameSite("Lax");
+        }
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, cb.build().toString())
@@ -124,6 +128,7 @@ public class AuthController {
         return ResponseEntity.ok(Map.of("available", !userRepository.existsByUserNickname(nickname)));
     }
 
-    private static ResponseEntity<?> ok(){ return ResponseEntity.ok(Map.of("ok", true)); }
-    private static ResponseEntity<?> bad(String m){ return ResponseEntity.badRequest().body(Map.of("ok", false, "message", m)); }
+    private static ResponseEntity<?> ok() { return ResponseEntity.ok(Map.of("ok", true)); }
+    private static ResponseEntity<?> ok(Map<String, Object> extra) { return ResponseEntity.ok(new java.util.LinkedHashMap<>(){{ put("ok", true); putAll(extra); }}); }
+    private static ResponseEntity<?> bad(String m) { return ResponseEntity.badRequest().body(Map.of("ok", false, "message", m)); }
 }

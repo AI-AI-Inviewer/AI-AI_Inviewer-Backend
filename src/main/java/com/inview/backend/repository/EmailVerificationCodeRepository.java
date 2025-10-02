@@ -7,5 +7,4 @@ import java.util.Optional;
 
 public interface EmailVerificationCodeRepository extends JpaRepository<EmailVerificationCode, String> {
     Optional<EmailVerificationCode> findTopByEmailIgnoreCaseOrderByCreatedAtDesc(String email);
-
 }
