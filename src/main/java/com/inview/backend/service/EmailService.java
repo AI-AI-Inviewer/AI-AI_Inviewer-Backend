@@ -2,6 +2,7 @@
 package com.inview.backend.service;
 
 import jakarta.mail.MessagingException;
+import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,14 +15,18 @@ import org.springframework.stereotype.Service;
 public class EmailService {
     private final JavaMailSender mailSender;
 
-    @Value("${app.mail.from}")
+    @Value("${app.mail.from:no-reply@aiinviewer.co.kr}")
     private String from;
+
+    @Value("${app.mail.from-name:AI Interviewer}")
+    private String fromName;
 
     public void sendVerificationEmail(String to, String verifyLink) {
         try {
             MimeMessage msg = mailSender.createMimeMessage();
             MimeMessageHelper h = new MimeMessageHelper(msg, true, "UTF-8");
-            h.setFrom(from);
+            h.setFrom(new InternetAddress(from, fromName, java.nio.charset.StandardCharsets.UTF_8.name()));
+
             h.setTo(to);
             h.setSubject("[AI-Inviewer] 이메일 인증을 완료해 주세요");
             String html = """
@@ -34,7 +39,7 @@ public class EmailService {
                 """.formatted(verifyLink, verifyLink);
             h.setText(html, true);
             mailSender.send(msg);
-        } catch (MessagingException e) {
+        } catch (MessagingException | java.io.UnsupportedEncodingException e) {
             throw new RuntimeException("메일 전송 실패", e);
         }
     }

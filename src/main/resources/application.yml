@@ -8,16 +8,15 @@ spring:
     url: ${DB_URL:jdbc:oracle:thin:@//localhost:1521/xe}
     username: ${DB_USERNAME:DONGYANG}
     password: ${DB_PASSWORD:1234}
-    mail:                                    # 서버 개발 버전
-      host: mail
-      port: 587
-      username: sender@aiinviewer.co.kr
-      password: ${MAIL_PASSWORD}
-      properties:
-        mail.smtp.auth: true
-        mail.smtp.starttls.enable: true
-        mail.mime.charset: UTF-8
-        mail.smtp.ssl.trust: "mail"
+  mail:
+    host: mail
+    port: 25
+    properties:
+      mail.smtp.auth: false
+      mail.smtp.starttls.enable: true
+      mail.mime.charset: UTF-8
+      mail.smtp.ssl.trust: "mail"
+      mail.smtp.from: no-reply@aiinviewer.co.kr
 #  mail:                                      ## 로컬 개발 버전
 #    host: mail.aiinviewer.co.kr
 #    port: 587
@@ -53,4 +52,5 @@ logging:
     org.springframework.security: DEBUG
 app:
   mail:
-    from: "AI-Inviewer <no-reply@aiinviewer.co.kr>"
+    from: no-reply@aiinviewer.co.kr
+    from-name: AI Interviewer
