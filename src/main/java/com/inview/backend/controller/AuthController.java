@@ -3,6 +3,7 @@ package com.inview.backend.controller;
 import com.inview.backend.config.JwtTokenProvider;
 import com.inview.backend.entity.User;
 import com.inview.backend.repository.UserRepository;
+import com.inview.backend.service.EmailCodeService;
 import com.inview.backend.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -24,11 +25,47 @@ public class AuthController {
     private final JwtTokenProvider jwtTokenProvider;
     private final UserRepository userRepository;
     private final UserService userService;
+    private final EmailCodeService emailCodeService;
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody User req) {
-        User created = userService.register(req);
-        return ResponseEntity.ok(Map.of("userNum", created.getUserNum()));
+        // 이메일 중복
+        if (userRepository.existsByUserEmail(req.getUserEmail())) {
+            return ResponseEntity.badRequest().body(Map.of("ok", false, "message", "이미 사용 중인 이메일입니다."));
+        }
+        // 이메일 인증 여부 확인
+        if (!emailCodeService.isRecentlyVerified(req.getUserEmail())) {
+            return ResponseEntity.status(403).body(Map.of("ok", false, "message", "이메일 인증이 필요합니다."));
+        }
+        User created = userService.register(req); // 내부에서 비번해시/중복체크 등
+        // 선택: created.setEmailVerified('Y'); // User 엔티티에 필드가 있다면
+        return ResponseEntity.ok(Map.of("ok", true, "userNum", created.getUserNum()));
+    }
+    /** 이메일 인증코드 발송 */
+    @PostMapping("/email-code/send")
+    public ResponseEntity<?> sendEmailCode(@RequestBody Map<String, String> req) {
+        String email = req.get("email");
+        if (email == null || email.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("ok", false, "message", "이메일이 필요합니다."));
+        }
+        if (userRepository.existsByUserEmail(email)) {
+            return ResponseEntity.badRequest().body(Map.of("ok", false, "message", "이미 가입된 이메일입니다."));
+        }
+        emailCodeService.sendCode(email);
+        return ResponseEntity.ok(Map.of("ok", true));
+    }
+
+    /** 이메일 인증코드 검증 */
+    @PostMapping("/email-code/verify")
+    public ResponseEntity<?> verifyEmailCode(@RequestBody Map<String, String> req) {
+        String email = req.get("email");
+        String code = req.get("code");
+        if (email == null || code == null || email.isBlank() || code.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("ok", false, "message", "email과 code는 필수입니다."));
+        }
+        boolean ok = emailCodeService.verifyCode(email, code);
+        if (!ok) return ResponseEntity.status(400).body(Map.of("ok", false, "message", "인증 코드가 유효하지 않습니다."));
+        return ResponseEntity.ok(Map.of("ok", true));
     }
 
     /** 로그인: 아이디/비번 검증 → JWT 발급 → 환경별 쿠키 옵션으로 Set-Cookie + JSON 반환 */

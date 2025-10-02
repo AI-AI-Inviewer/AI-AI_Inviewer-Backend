@@ -44,8 +44,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.DELETE,"/api/comments/**").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/chat").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/chat/stt").authenticated()
+                        .requestMatchers("/api/user/email-code/send", "/api/user/email-code/verify").permitAll()
+                        .requestMatchers("/api/user/register").permitAll()
                         .requestMatchers("/api/auth/refresh").permitAll()
-                        // /api/chat/tts 는 anyRequest().authenticated()에 걸려서 인증 필요(의도대로)
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(e -> e
