@@ -90,4 +90,14 @@ public class CommunityService {
                 .orElseThrow(() -> new IllegalArgumentException("게시글이 존재하지 않습니다."));
         return CommunityResponseDto.from(c);
     }
+
+    @Transactional  // ★ readOnly 아님!
+    public CommunityResponseDto readAndIncrease(Long id) {
+        communityRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("게시글이 존재하지 않습니다."));
+        communityRepository.increaseViewCount(id);
+        Community fresh = communityRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("게시글이 존재하지 않습니다."));
+        return CommunityResponseDto.from(fresh);
+    }
 }

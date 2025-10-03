@@ -38,10 +38,9 @@ public class CommunityController {
         return communityService.search(keyword, pageable);
     }
 
-    // 상세 (DTO 반환)
     @GetMapping("/{id}")
     public CommunityResponseDto get(@PathVariable Long id) {
-        return communityService.get(id);
+        return communityService.readAndIncrease(id);  // ✅ 조회수 증가 포함
     }
 
     // 생성 (DTO 반환)
