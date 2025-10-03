@@ -19,13 +19,14 @@ public class EmailCodeService {
 
     private final EmailVerificationCodeRepository repo;
     private final PasswordEncoder passwordEncoder;  // ✅ SecurityConfig의 BCryptPasswordEncoder 주입
+    private final EmailService emailService;
 
     private static final SecureRandom RNG = new SecureRandom();
 
     public void sendCode(String email) {
         String normEmail = email.trim().toLowerCase();
-        String code = make6digits();               // ✅ 6자리 코드 생성
-        String codeHash = hash(code);              // ✅ 해시 저장
+        String code = make6digits();
+        String codeHash = passwordEncoder.encode(code);
 
         var now = LocalDateTime.now();
         var evc = new EmailVerificationCode();
@@ -36,13 +37,14 @@ public class EmailCodeService {
         evc.setCreatedAt(now);
         evc.setExpiresAt(now.plusMinutes(10));
 
+        // 1) 먼저 메일 전송 시도 (전송 실패 시 DB에 남기지 않도록)
+        emailService.sendEmailCode(normEmail, code);
+
+        // 2) 성공하면 DB 저장
         repo.save(evc);
 
-        // TODO: 실제 메일 전송 로직 (메일 본문에 code 삽입)
-        // mailService.send(normEmail, "인증 코드", "인증코드: " + code);
-
-        log.info("[EMAIL-CODE] sent to={}, expiresAt={}, code(6) masked={}",
-                normEmail, evc.getExpiresAt(), mask(code));
+        log.info("[EMAIL-CODE] sent to={}, expiresAt={}, code(6) masked=******",
+                normEmail, evc.getExpiresAt());
     }
 
     public boolean verifyCode(String email, String code) {
