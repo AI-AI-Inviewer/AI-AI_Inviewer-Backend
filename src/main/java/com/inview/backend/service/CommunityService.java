@@ -1,8 +1,10 @@
+// src/main/java/com/inview/backend/service/CommunityService.java
 package com.inview.backend.service;
 
 import com.inview.backend.dto.CommunityResponseDto;
 import com.inview.backend.entity.Community;
 import com.inview.backend.entity.User;
+import com.inview.backend.repository.CommentRepository;
 import com.inview.backend.repository.CommunityRepository;
 import com.inview.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +22,7 @@ public class CommunityService {
 
     private final CommunityRepository communityRepository;
     private final UserRepository userRepository;
+    private final CommentRepository commentRepository; // ✅ 추가
 
     public CommunityResponseDto create(String userId, String title, String content, String resume) {
         User user = userRepository.findByUserId(userId)
@@ -62,6 +65,11 @@ public class CommunityService {
         if (!c.getUser().getUserId().equals(userId)) {
             throw new SecurityException("본인만 삭제할 수 있습니다.");
         }
+
+        // ✅ 1) 자식(댓글) 먼저 삭제
+        commentRepository.deleteByCommunity(id);
+
+        // ✅ 2) 부모(게시글) 삭제
         communityRepository.delete(c);
     }
 
