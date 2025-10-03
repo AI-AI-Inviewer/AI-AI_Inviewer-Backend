@@ -95,6 +95,7 @@ public class AuthController {
                 .body(Map.of("ok", true, "token", jwt, "userId", user.getUserId(), "userName", user.getUserName()));
     }
 
+    // 로그아웃 (쿠키 삭제)
     @PostMapping("/logout")
     public ResponseEntity<?> logout(HttpServletRequest request) {
         boolean isProd = request.getServerName() != null && request.getServerName().endsWith("aiinviewer.co.kr");
@@ -102,9 +103,12 @@ public class AuthController {
                 .httpOnly(true).path("/").maxAge(0);
         if (isProd) cb.secure(true).sameSite("None").domain(".aiinviewer.co.kr");
         else cb.secure(false).sameSite("Lax");
-        return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, cb.build().toString()).body(Map.of("ok", true));
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, cb.build().toString())
+                .body(Map.of("ok", true));
     }
 
+    // 내 정보
     @GetMapping("/me")
     public ResponseEntity<?> me(Authentication authentication) {
         if (authentication == null) return ResponseEntity.status(401).build();
@@ -118,6 +122,7 @@ public class AuthController {
         ));
     }
 
+    // 아이디/닉네임 중복 체크
     @GetMapping("/check-id")
     public ResponseEntity<Map<String, Boolean>> checkUserId(@RequestParam String userId) {
         return ResponseEntity.ok(Map.of("available", !userRepository.existsByUserId(userId)));
@@ -127,8 +132,8 @@ public class AuthController {
     public ResponseEntity<Map<String, Boolean>> checkNickname(@RequestParam String nickname) {
         return ResponseEntity.ok(Map.of("available", !userRepository.existsByUserNickname(nickname)));
     }
-    // com/inview/backend/controller/AuthController.java
 
+    // 정보 수정
     @PutMapping(value = "/update", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> updateUserInfo(@RequestBody Map<String, String> req, Authentication authentication) {
         if (authentication == null) {
@@ -170,8 +175,46 @@ public class AuthController {
         ));
     }
 
+    // ✅ 비밀번호 변경 (로그인 유지: 쿠키/세션 변경 없음)
+    @PutMapping("/password")
+    public ResponseEntity<?> changePassword(@RequestBody Map<String, String> req,
+                                            Authentication authentication) {
+        if (authentication == null) {
+            return ResponseEntity.status(401).body(Map.of("ok", false, "message", "인증이 필요합니다."));
+        }
 
-    private static ResponseEntity<?> ok() { return ResponseEntity.ok(Map.of("ok", true)); }
-    private static ResponseEntity<?> ok(Map<String, Object> extra) { return ResponseEntity.ok(new java.util.LinkedHashMap<>(){{ put("ok", true); putAll(extra); }}); }
-    private static ResponseEntity<?> bad(String m) { return ResponseEntity.badRequest().body(Map.of("ok", false, "message", m)); }
+        String current = req.getOrDefault("currentPassword", "").trim();
+        String next    = req.getOrDefault("newPassword", "").trim();
+
+        if (current.isBlank() || next.isBlank()) {
+            return bad("currentPassword, newPassword는 필수입니다.");
+        }
+        if (next.length() < 8) {
+            return ResponseEntity.badRequest().body(Map.of("ok", false, "message", "새 비밀번호는 8자 이상이어야 합니다."));
+        }
+
+        User loginUser = (User) authentication.getPrincipal();
+        try {
+            userService.changePassword(loginUser.getUserNum(), current, next);
+            // 로그인 유지: 쿠키/세션 만지지 않음
+            return ok();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(409).body(Map.of("ok", false, "message", e.getMessage()));
+        }
+    }
+
+    private static ResponseEntity<?> ok() {
+        return ResponseEntity.ok(Map.of("ok", true));
+    }
+
+    private static ResponseEntity<?> ok(Map<String, Object> extra) {
+        return ResponseEntity.ok(new java.util.LinkedHashMap<>() {{
+            put("ok", true);
+            putAll(extra);
+        }});
+    }
+
+    private static ResponseEntity<?> bad(String m) {
+        return ResponseEntity.badRequest().body(Map.of("ok", false, "message", m));
+    }
 }
