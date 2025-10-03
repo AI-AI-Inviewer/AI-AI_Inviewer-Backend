@@ -1,4 +1,4 @@
-// com/inview/backend/service/EmailCodeService.java
+// com/inview/backend/service/EmailService.java  (클래스명은 EmailCodeService로 유지)
 package com.inview.backend.service;
 
 import com.inview.backend.entity.EmailVerificationCode;
@@ -7,105 +7,93 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
-@Slf4j
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class EmailCodeService {
 
     private final EmailVerificationCodeRepository repo;
-    private final EmailService emailService;
-    private final PasswordEncoder encoder;
-    private final SecureRandom rnd = new SecureRandom();
+    private final PasswordEncoder passwordEncoder;  // ✅ SecurityConfig의 BCryptPasswordEncoder 주입
 
-    private String normalizeEmail(String e) { return e == null ? "" : e.trim().toLowerCase(); }
-    private String normalizeCode(String c)  { return c == null ? "" : c.trim().replaceAll("\\s+", ""); }
+    private static final SecureRandom RNG = new SecureRandom();
 
-    private String generate6Digits() {
-        int n = 100000 + rnd.nextInt(900000);
-        return String.valueOf(n);
+    public void sendCode(String email) {
+        String normEmail = email.trim().toLowerCase();
+        String code = make6digits();               // ✅ 6자리 코드 생성
+        String codeHash = hash(code);              // ✅ 해시 저장
+
+        var now = LocalDateTime.now();
+        var evc = new EmailVerificationCode();
+        evc.setId(UUID.randomUUID().toString());
+        evc.setEmail(normEmail);
+        evc.setCodeHash(codeHash);
+        evc.setAttempts(0);
+        evc.setCreatedAt(now);
+        evc.setExpiresAt(now.plusMinutes(10));
+
+        repo.save(evc);
+
+        // TODO: 실제 메일 전송 로직 (메일 본문에 code 삽입)
+        // mailService.send(normEmail, "인증 코드", "인증코드: " + code);
+
+        log.info("[EMAIL-CODE] sent to={}, expiresAt={}, code(6) masked={}",
+                normEmail, evc.getExpiresAt(), mask(code));
     }
 
-    @Transactional
-    public void sendCode(String rawEmail) {
-        String email = normalizeEmail(rawEmail);
-        String code = generate6Digits();
-        String hash = encoder.encode(code);
-        Instant now = Instant.now();
+    public boolean verifyCode(String email, String code) {
+        String normEmail = email.trim().toLowerCase();
+        var now = LocalDateTime.now();
 
-        EmailVerificationCode entity = EmailVerificationCode.builder()
-                .id(UUID.randomUUID().toString())
-                .email(email)
-                .codeHash(hash)
-                .attempts(0)
-                .createdAt(now)
-                .expiresAt(now.plusSeconds(10 * 60)) // 10분
-                .build();
+        var latest = repo.findTopByEmailIgnoreCaseOrderByCreatedAtDesc(normEmail).orElse(null);
+        if (latest == null) return false;
+        if (latest.getVerifiedAt() != null) return true;                // 이미 인증됨
+        if (now.isAfter(latest.getExpiresAt())) return false;           // 만료
 
-        repo.save(entity);
-
-        log.info("[EMAIL-CODE] sent to={}, expiresAt={}, code(6) masked=******",
-                email, entity.getExpiresAt());
-        emailService.sendEmailCode(email, code);
-    }
-
-    @Transactional
-    public boolean verifyCode(String rawEmail, String rawCode) {
-        String email = normalizeEmail(rawEmail);
-        String code  = normalizeCode(rawCode);
-
-        var opt = repo.findTopByEmailIgnoreCaseOrderByCreatedAtDesc(email);
-        if (opt.isEmpty()) {
-            log.warn("[EMAIL-CODE] no record. email={}", email);
+        boolean ok = matches(code, latest.getCodeHash());
+        if (!ok) {
+            // 실패 횟수 증가(널 안전)
+            Integer attempts = latest.getAttempts() == null ? 0 : latest.getAttempts();
+            latest.setAttempts(attempts + 1);
+            repo.save(latest);
             return false;
         }
 
-        var latest = opt.get();
-
-        // 만료 체크 (DB 비교 대신 자바에서)
-        if (latest.getExpiresAt() != null && latest.getExpiresAt().isBefore(Instant.now())) {
-            log.warn("[EMAIL-CODE] expired. email={}, createdAt={}, expiresAt={}",
-                    email, latest.getCreatedAt(), latest.getExpiresAt());
-            return false;
-        }
-
-        // 이미 인증된 최신 코드면 true
-        if (latest.getVerifiedAt() != null) {
-            log.info("[EMAIL-CODE] already verified. email={}, verifiedAt={}",
-                    email, latest.getVerifiedAt());
-            return true;
-        }
-
-        // 시도 제한
-        Integer attempts = latest.getAttempts() == null ? 0 : latest.getAttempts();
-        if (attempts >= 10) {
-            log.warn("[EMAIL-CODE] too many attempts. email={}, attempts={}", email, attempts);
-            return false;
-        }
-
-        latest.setAttempts(attempts + 1);
-        boolean ok = encoder.matches(code, latest.getCodeHash());
-        if (ok) {
-            latest.setVerifiedAt(Instant.now());
-            log.info("[EMAIL-CODE] verify OK. email={}, attempts={}", email, latest.getAttempts());
-        } else {
-            log.warn("[EMAIL-CODE] verify FAIL. email={}, attempts={}", email, latest.getAttempts());
-        }
+        latest.setVerifiedAt(now);
         repo.save(latest);
-        return ok;
+        return true;
     }
 
-    @Transactional(readOnly = true)
-    public boolean isRecentlyVerified(String rawEmail) {
-        String email = normalizeEmail(rawEmail);
-        return repo.findTopByEmailIgnoreCaseOrderByCreatedAtDesc(email)
-                .map(v -> v.getVerifiedAt() != null && v.getExpiresAt() != null
-                        && v.getExpiresAt().isAfter(Instant.now()))
-                .orElse(false);
+    public boolean isRecentlyVerified(String email) {
+        String normEmail = email.trim().toLowerCase();
+        var latest = repo.findTopByEmailIgnoreCaseOrderByCreatedAtDesc(normEmail).orElse(null);
+        return latest != null
+                && latest.getVerifiedAt() != null
+                && latest.getVerifiedAt().isAfter(LocalDateTime.now().minusHours(24));
+    }
+
+    /* ---------- Helpers ---------- */
+
+    // 6자리 숫자코드 생성(000000 ~ 999999)
+    private String make6digits() {
+        int n = RNG.nextInt(1_000_000);
+        return String.format("%06d", n);
+    }
+
+    // 해시 및 검증(BCrypt 등)
+    private String hash(String raw) {
+        return passwordEncoder.encode(raw);
+    }
+
+    private boolean matches(String raw, String hashed) {
+        return passwordEncoder.matches(raw, hashed);
+    }
+
+    private String mask(String code) {
+        return "******";
     }
 }
