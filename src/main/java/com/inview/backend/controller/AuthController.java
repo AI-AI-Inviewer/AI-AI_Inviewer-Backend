@@ -127,30 +127,30 @@ public class AuthController {
     public ResponseEntity<Map<String, Boolean>> checkNickname(@RequestParam String nickname) {
         return ResponseEntity.ok(Map.of("available", !userRepository.existsByUserNickname(nickname)));
     }
-    @PatchMapping(value = "/me", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<?> updateMe(@RequestBody Map<String, String> req, Authentication authentication) {
+    // com/inview/backend/controller/AuthController.java
+
+    @PutMapping(value = "/update", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> updateUserInfo(@RequestBody Map<String, String> req, Authentication authentication) {
         if (authentication == null) {
             return ResponseEntity.status(401).body(Map.of("ok", false, "message", "인증이 필요합니다."));
         }
 
         User loginUser = (User) authentication.getPrincipal();
-        // userNum 기준으로 DB에서 당사자 엔티티 로드
         User entity = userRepository.findById(loginUser.getUserNum())
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
-        String name  = (req.getOrDefault("userName", "").trim());
-        String nick  = (req.getOrDefault("userNickname", "").trim());
-        String email = (req.getOrDefault("userEmail", "").trim().toLowerCase());
+        String name  = req.getOrDefault("userName", "").trim();
+        String nick  = req.getOrDefault("userNickname", "").trim();
+        String email = req.getOrDefault("userEmail", "").trim().toLowerCase();
 
         if (name.isBlank() || nick.isBlank() || email.isBlank()) {
             return bad("userName, userNickname, userEmail은 모두 필수입니다.");
         }
 
-        // 닉네임 중복체크 (본인 제외)
+        // 본인 제외 중복 체크
         if (!nick.equals(entity.getUserNickname()) && userRepository.existsByUserNickname(nick)) {
             return bad("이미 사용 중인 닉네임입니다.");
         }
-        // 이메일 중복체크 (본인 제외)
         if (!email.equalsIgnoreCase(entity.getUserEmail()) && userRepository.existsByUserEmail(email)) {
             return bad("이미 사용 중인 이메일입니다.");
         }
@@ -158,7 +158,6 @@ public class AuthController {
         entity.setUserName(name);
         entity.setUserNickname(nick);
         entity.setUserEmail(email);
-
         userRepository.save(entity);
 
         return ResponseEntity.ok(Map.of(
@@ -170,6 +169,7 @@ public class AuthController {
                 "userNum", entity.getUserNum()
         ));
     }
+
 
     private static ResponseEntity<?> ok() { return ResponseEntity.ok(Map.of("ok", true)); }
     private static ResponseEntity<?> ok(Map<String, Object> extra) { return ResponseEntity.ok(new java.util.LinkedHashMap<>(){{ put("ok", true); putAll(extra); }}); }
