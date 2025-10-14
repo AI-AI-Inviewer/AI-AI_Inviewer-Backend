@@ -79,6 +79,15 @@ public class AiInterviewController {
                     .body(msg.getBytes(StandardCharsets.UTF_8));
         }
     }
+    @PostMapping(value = "/eval", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public Map<String, Object> eval(@RequestBody Map<String, Object> body) {
+        String company = (String) body.getOrDefault("company", "미지정");
+        String resumeSummary = (String) body.getOrDefault("resumeSummary", "");
+        String transcript = (String) body.getOrDefault("transcript", "");
+        // 3회 평가 → 중앙값/평균 집계
+        return openAiService.evaluateFinal(company, resumeSummary, transcript, 3);
+    }
+
 
     /** 보이스 목록 */
     @GetMapping("/voices")
