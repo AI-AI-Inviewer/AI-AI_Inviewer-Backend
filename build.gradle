@@ -27,4 +27,10 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
     implementation 'org.springframework.boot:spring-boot-starter-mail'
+
+    implementation 'org.apache.poi:poi-ooxml:5.2.5'   // DOCX
+    implementation 'org.apache.pdfbox:pdfbox:2.0.30'  // PDF
+
+    compileOnly 'org.projectlombok:lombok:1.18.32'
+    annotationProcessor 'org.projectlombok:lombok:1.18.32'
 }

@@ -46,6 +46,8 @@ jwt:
 openai:
   api-key: ${OPENAI_API_KEY:}
 
+heygen:
+  api-key: ${HEYGEN_API_KEY}
 logging:
   level:
     org.springframework.security: DEBUG
@@ -53,3 +55,4 @@ app:
   mail:
     from: no-reply@aiinviewer.co.kr
     from-name: AI Interviewer
+
