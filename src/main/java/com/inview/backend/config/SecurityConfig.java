@@ -1,3 +1,4 @@
+// src/main/java/com/inview/backend/config/SecurityConfig.java
 package com.inview.backend.config;
 
 import jakarta.servlet.http.HttpServletResponse;
@@ -32,10 +33,11 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        // 기본
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/", "/index.html", "/static/**", "/assets/**", "/actuator/health", "/error").permitAll()
 
-                        // ✅ 회원가입 전 공개 엔드포인트
+                        // 회원가입/로그인 전 공개 엔드포인트
                         .requestMatchers(HttpMethod.GET,
                                 "/api/user/check-id",
                                 "/api/user/check-email",
@@ -48,17 +50,34 @@ public class SecurityConfig {
                                 "/api/user/email-code/verify"
                         ).permitAll()
 
+                        // 커뮤니티/댓글 읽기 공개
                         .requestMatchers(HttpMethod.GET, "/api/community/**", "/api/comments/**").permitAll()
 
+                        // 면접 후기 읽기 공개
+                        .requestMatchers(HttpMethod.GET, "/api/postscript/**").permitAll()
+
+                        // 면접 후기 댓글 읽기 공개
+                        .requestMatchers(HttpMethod.GET, "/api/postscript-comments/**").permitAll()
+
+                        // 인증 필요 엔드포인트
                         .requestMatchers(HttpMethod.GET, "/api/user/me").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/community/**", "/api/comments", "/api/chat", "/api/chat/stt").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/api/comments/**").authenticated()
 
+                        // 면접 후기 작성/수정/삭제 인증 필요
+                        .requestMatchers(HttpMethod.POST, "/api/postscript/**").authenticated()
+                        .requestMatchers(HttpMethod.PUT,  "/api/postscript/**").authenticated()
+                        .requestMatchers(HttpMethod.DELETE,"/api/postscript/**").authenticated()
+
+                        // 면접 후기 댓글 작성/삭제 인증 필요
+                        .requestMatchers(HttpMethod.POST,   "/api/postscript-comments/**").authenticated()
+                        .requestMatchers(HttpMethod.DELETE, "/api/postscript-comments/**").authenticated()
+
+                        // 토큰 갱신 공개
                         .requestMatchers("/api/auth/refresh").permitAll()
 
                         .anyRequest().authenticated()
                 )
-
                 .exceptionHandling(e -> e
                         .authenticationEntryPoint((req, res, ex) -> {
                             res.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
@@ -92,6 +111,7 @@ public class SecurityConfig {
         c.setAllowedHeaders(List.of("*"));
         c.setAllowCredentials(true);
         c.setMaxAge(3600L);
+
         UrlBasedCorsConfigurationSource s = new UrlBasedCorsConfigurationSource();
         s.registerCorsConfiguration("/**", c);
         return s;
