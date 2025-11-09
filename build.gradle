@@ -4,33 +4,49 @@ plugins {
     id 'io.spring.dependency-management' version '1.1.7'
 }
 
-repositories { mavenCentral() }
+repositories {
+    mavenCentral()
+}
+
+def tikaVersion = '2.9.2'
+def lombokVersion = '1.18.32'
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
 
 dependencies {
+    // Spring
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'org.springframework.boot:spring-boot-starter-mail'
 
-    implementation 'com.oracle.database.jdbc:ojdbc11:23.2.0.0'
+    // DB/JPA
+    runtimeOnly  'com.oracle.database.jdbc:ojdbc11:23.2.0.0'
+    implementation "org.hibernate.orm:hibernate-community-dialects:6.6.15.Final"
 
-    compileOnly 'org.projectlombok:lombok'
-    annotationProcessor 'org.projectlombok:lombok'
-
+    // JWT
     implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
     runtimeOnly  'io.jsonwebtoken:jjwt-impl:0.11.5'
     runtimeOnly  'io.jsonwebtoken:jjwt-jackson:0.11.5'
 
-    implementation "org.hibernate.orm:hibernate-community-dialects:6.6.15.Final"
+    // Lombok (중복 정리)
+    compileOnly "org.projectlombok:lombok:${lombokVersion}"
+    annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
 
+    // 문서 처리 (기존 유지)
+    implementation 'org.apache.poi:poi-ooxml:5.2.5'   // DOCX 등
+    implementation 'org.apache.pdfbox:pdfbox:2.0.30'  // PDF 등
+
+    // Test
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
-    implementation 'org.springframework.boot:spring-boot-starter-mail'
+    implementation "org.apache.tika:tika-core:2.9.2"
+    implementation "org.apache.tika:tika-parsers-standard-package:2.9.2"
 
-    implementation 'org.apache.poi:poi-ooxml:5.2.5'   // DOCX
-    implementation 'org.apache.pdfbox:pdfbox:2.0.30'  // PDF
-
-    compileOnly 'org.projectlombok:lombok:1.18.32'
-    annotationProcessor 'org.projectlombok:lombok:1.18.32'
 }

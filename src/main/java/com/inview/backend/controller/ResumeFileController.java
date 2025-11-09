@@ -1,13 +1,16 @@
-// src/main/java/com/inview/backend/controller/ResumeFileController.java
 package com.inview.backend.controller;
 
-import com.inview.backend.entity.Resume;
 import com.inview.backend.dto.ResumeListDto;
+import com.inview.backend.dto.ResumeTextDto;
 import com.inview.backend.dto.UploadResponseDto;
+import com.inview.backend.entity.Resume;
 import com.inview.backend.service.ResumeService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.core.io.InputStreamResource;
-import org.springframework.http.*;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -88,6 +91,16 @@ public class ResumeFileController {
         return ResponseEntity.noContent().build();
     }
 
+    // ★ 본문 텍스트 추출
+    @GetMapping("/resumes/{id}/text")
+    public ResponseEntity<ResumeTextDto> text(@PathVariable Long id,
+                                              @RequestParam(name = "limit", required = false) Integer limit,
+                                              HttpServletRequest request) {
+        String userId = getCurrentUserId(request);
+        ResumeTextDto dto = resumeService.getResumeText(id, userId, limit);
+        return ResponseEntity.ok(dto);
+    }
+
     private String contentDispositionFilename(String filename) {
         return URLEncoder.encode(filename, StandardCharsets.UTF_8).replaceAll("\\+", "%20");
     }
@@ -106,7 +119,6 @@ public class ResumeFileController {
 
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth != null && auth.isAuthenticated()) {
-            // 일반적으로 username 반환
             String name = auth.getName();
             if (name != null && !name.isBlank() && !"anonymousUser".equals(name)) return name;
 
