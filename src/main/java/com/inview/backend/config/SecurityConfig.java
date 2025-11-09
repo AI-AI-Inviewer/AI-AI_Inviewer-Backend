@@ -59,15 +59,25 @@ public class SecurityConfig {
                         // 면접 후기 댓글 읽기 공개
                         .requestMatchers(HttpMethod.GET, "/api/postscript-comments/**").permitAll()
 
+                        // --- 여기부터 자소서(이력서/자기소개서) 보안 규칙 추가 ---
+                        // 업로드(파일 저장)
+                        .requestMatchers(HttpMethod.POST, "/api/upload/resume").authenticated()
+                        // 목록/미리보기/다운로드(GET), 삭제(DELETE)
+                        .requestMatchers(HttpMethod.GET,    "/api/resumes/**").authenticated()
+                        .requestMatchers(HttpMethod.DELETE, "/api/resumes/**").authenticated()
+                        // 텍스트 파싱(별도 파서 API)
+                        .requestMatchers(HttpMethod.POST, "/api/resume/parse").authenticated()
+                        // --- 자소서 규칙 끝 ---
+
                         // 인증 필요 엔드포인트
                         .requestMatchers(HttpMethod.GET, "/api/user/me").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/community/**", "/api/comments", "/api/chat", "/api/chat/stt").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/api/comments/**").authenticated()
 
                         // 면접 후기 작성/수정/삭제 인증 필요
-                        .requestMatchers(HttpMethod.POST, "/api/postscript/**").authenticated()
-                        .requestMatchers(HttpMethod.PUT,  "/api/postscript/**").authenticated()
-                        .requestMatchers(HttpMethod.DELETE,"/api/postscript/**").authenticated()
+                        .requestMatchers(HttpMethod.POST,   "/api/postscript/**").authenticated()
+                        .requestMatchers(HttpMethod.PUT,    "/api/postscript/**").authenticated()
+                        .requestMatchers(HttpMethod.DELETE, "/api/postscript/**").authenticated()
 
                         // 면접 후기 댓글 작성/삭제 인증 필요
                         .requestMatchers(HttpMethod.POST,   "/api/postscript-comments/**").authenticated()
@@ -111,6 +121,9 @@ public class SecurityConfig {
         c.setAllowedHeaders(List.of("*"));
         c.setAllowCredentials(true);
         c.setMaxAge(3600L);
+
+        // 파일 다운로드 시 프런트에서 파일명 읽을 수 있도록 노출
+        c.setExposedHeaders(List.of("Content-Disposition"));
 
         UrlBasedCorsConfigurationSource s = new UrlBasedCorsConfigurationSource();
         s.registerCorsConfiguration("/**", c);

@@ -1,3 +1,4 @@
+// src/main/java/com/inview/backend/controller/ResumeParseController.java
 package com.inview.backend.controller;
 
 import lombok.RequiredArgsConstructor;
@@ -14,10 +15,10 @@ import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
-@RestController
+@RestController("resumeParseController")
 @RequestMapping("/api/resume")
 @RequiredArgsConstructor
-public class ResumeController {
+public class ResumeParseController {
 
     private static final int MAX = 20000;
 
@@ -39,7 +40,9 @@ public class ResumeController {
             }
         } else if (lower.endsWith(".pdf")) {
             try (PDDocument pdf = PDDocument.load(bytes)) {
-                text = new PDFTextStripper().getText(pdf);
+                PDFTextStripper stripper = new PDFTextStripper();
+                stripper.setSortByPosition(true);
+                text = stripper.getText(pdf);
             }
         } else {
             throw new IllegalArgumentException("지원하지 않는 형식입니다. (.txt, .md, .docx, .pdf)");
